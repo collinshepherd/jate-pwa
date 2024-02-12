@@ -1,28 +1,40 @@
-const butInstall = document.getElementById("buttonInstall");
+import { openDB } from "idb";
 
-// Logic for installing the PWA
-// event handler for the `beforeinstallprompt` event
-window.addEventListener("beforeinstallprompt", (event) => {
-  window.deferredPrompt = event;
-  butInstall.classList.toggle("hidden", false);
-});
+const initdb = async () =>
+  openDB("jate", 1, {
+    upgrade(db) {
+      if (db.objectStoreNames.contains("jate")) {
+        console.log("jate database already exists");
+        return;
+      }
+      db.createObjectStore("jate", { keyPath: "id", autoIncrement: true });
+      console.log("jate database created");
+    },
+  });
 
-// click event handler on the `butInstall` element
-butInstall.addEventListener("click", async () => {
-  const promptEvent = window.deferredPrompt;
+// method that accepts some content and adds it to the IndexedBD database using the idb module
+export const putDb = async (content) => {
+  console.log("PUT to the database");
+  const jateDb = await openDB("jate", 1);
+  const tx = jateDb.transaction("jate", "readwrite");
+  const store = tx.objectStore("jate");
+  const request = store.put({ id: 1, value: content });
+  const result = await request;
+  console.log("New data saved to the database", result.value);
+};
 
-  if (!promptEvent) {
-    return;
-  }
+// method that gets all the content from the IndexedDB database using the idb module
+export const getDb = async () => {
+  console.log("GET from the database");
+  const jateDb = await openDB("jate", 1);
+  const tx = jateDb.transaction("jate", "readonly");
+  const store = tx.objectStore("jate");
+  const request = store.get(1);
+  const result = await request;
+  result
+    ? console.log("Data retrieved from the database", result.value)
+    : console.log("Data not found in the database");
+  return result?.value;
+};
 
-  promptEvent.prompt();
-
-  window.deferredPrompt = null;
-
-  butInstall.classList.toggle("hidden", true);
-});
-
-// handler for the `appinstalled` event
-window.addEventListener("appinstalled", (event) => {
-  window.deferredPrompt = null;
-});
+initdb();
